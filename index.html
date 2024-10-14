@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malaysia Death Statistics</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Malaysia Death Statistics</h1>
+    </header>
+
+    <main>
+        <!-- First Graph: Map of Number of Deaths by States -->
+        <section id="map-chart" class="chart-container"></section>
+
+        <!-- Second Graph: Line Chart with Description on the Right -->
+        <section id="line-chart-section" class="chart-container">
+            <div id="line-chart" class="chart"></div>
+            <div class="line-description">
+                <p>This line graph shows the number of deaths over time across the various states of Malaysia. The x-axis represents the date, while the y-axis represents the number of deaths recorded. Each line is color-coded by state, allowing you to see the trends in each region over time.
+                    By observing changes in the number of deaths over time, this graph can help public health officials understand trends and possible causes of mortality spikes.
+                </p>
+            </div>
+        </section>
+
+        <!-- Third Graph: Bar Chart with Description on the Left -->
+        <section id="bar-chart-section" class="chart-container">
+            <div class="bar-description">
+                <p>This clustered bar chart shows the number of deaths by gender in various Malaysian states for the year 2022. Each bar is stacked by gender to highlight the differences in the number of deaths between males and females in each state. 
+                    It sheds light on gender disparities in mortality across the country. If one gender shows significantly higher death rates, it could indicate underlying health disparities that need addressing. Public health interventions can then be tailored to address these specific issues, such as health campaigns aimed at reducing risk factors for the gender with higher mortality rates.
+                </p>
+            </div>
+            <div id="bar-chart" class="chart"></div>
+        </section>
+    </main>
+
+    <script>
+        // First Graph: Map of Number of Deaths by States
+        const mapChartSpec = {
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "title": "Number of Deaths by Malaysian States (2022)",
+            "width": 800,
+            "height": 600,
+            "data": {
+                "url": "https://raw.githubusercontent.com/Limkaiying031121/Visualization2/refs/heads/main/gadm41_MYS_1.json",
+                "format": { "type": "topojson", "feature": "gadm41_MYS_1" }
+            },
+            "transform": [
+                {
+                    "lookup": "properties.NAME_1",
+                    "from": {
+                        "data": {
+                            "url": "https://raw.githubusercontent.com/Limkaiying031121/Visualization2/refs/heads/main/death_state_mapdata.csv",
+                            "format": { "type": "csv" }
+                        },
+                        "key": "state",
+                        "fields": ["deaths_cleaned"]
+                    },
+                    "as": ["deaths"],
+                    "default": null
+                }
+            ],
+            "mark": { "type": "geoshape", "stroke": "black" },
+            "encoding": {
+                "color": {
+                    "field": "deaths",
+                    "type": "quantitative",
+                    "scale": {
+                        "domain": [200, 20000],
+                        "range": ["#ffeda0", "#feb24c", "#f03b20"]
+                    },
+                    "title": "Number of Deaths"
+                },
+                "tooltip": [
+                    { "field": "properties.NAME_1", "type": "nominal", "title": "State" },
+                    { "field": "deaths", "type": "quantitative", "title": "Number of Deaths" }
+                ]
+            }
+        };
+
+        // Second Graph: Number of Deaths Over Time
+        const lineChartSpec = {
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "title": "Number of deaths over time in the states of Malaysia",
+            "width": 400,
+            "height": 400,
+            "data": {
+                "url": "https://raw.githubusercontent.com/Limkaiying031121/Visualization2/refs/heads/main/death_sex_ethnic_state_cleaned.csv",
+                "format": { "type": "csv" }
+            },
+            "transform": [
+                { "filter": "datum.sex === 'both'" },
+                { "filter": "datum.ethnicity === 'overall'" }
+            ],
+            "mark": "line",
+            "encoding": {
+                "x": { "field": "date", "type": "temporal", "title": "Date" },
+                "y": { "field": "abs", "type": "quantitative", "title": "Number of Deaths" },
+                "color": { "field": "state", "type": "nominal", "title": "State" },
+                "tooltip": [
+                    { "field": "date", "type": "temporal", "title": "Date" },
+                    { "field": "state", "type": "nominal", "title": "State" },
+                    { "field": "abs", "type": "quantitative", "title": "Number of Deaths" }
+                ]
+            }
+        };
+
+        // Third Graph: Number of Deaths by Gender
+        const barChartSpec = {
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "title": "Number of Deaths by Gender in the states of Malaysia (2022)",
+            "width": 400,
+            "height": 400,
+            "data": {
+                "url": "https://raw.githubusercontent.com/Limkaiying031121/Visualization2/refs/heads/main/death_sex_ethnic_state_cleaned.csv",
+                "format": { "type": "csv" }
+            },
+            "transform": [
+                { "filter": "year(datum.date) === 2022" },
+                { "filter": "datum.sex === 'male' || datum.sex === 'female'" }
+            ],
+            "mark": "bar",
+            "encoding": {
+                "x": { "field": "state", "type": "nominal", "axis": { "labelAngle": 270 }, "title": "States" },
+                "y": { "field": "deaths_cleaned", "type": "quantitative", "stack": "zero", "title": "Number of Deaths" },
+                "color": {
+                    "field": "sex", "type": "nominal", "title": "Gender",
+                    "scale": { "domain": ["male", "female"], "range": ["#1f77b4", "#ff7f0e"] }
+                },
+                "tooltip": [
+                    { "field": "state", "type": "nominal", "title": "State" },
+                    { "field": "sex", "type": "nominal", "title": "Gender" },
+                    { "field": "deaths_cleaned", "type": "quantitative", "title": "Number of Deaths" }
+                ]
+            }
+        };
+
+        // Embed the graphs into their respective containers
+        vegaEmbed('#map-chart', mapChartSpec);
+        vegaEmbed('#line-chart', lineChartSpec);
+        vegaEmbed('#bar-chart', barChartSpec);
+    </script>
+</body>
+</html>
